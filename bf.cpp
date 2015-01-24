@@ -2,6 +2,9 @@
 #include <iomanip>
 #include <primesieve.hpp>
 #include <algorithm>
+#include <deque>
+#include <stack>
+#include <cassert>
 
 using namespace std;
 using primesieve::PrimeSieve;
@@ -41,6 +44,61 @@ void generateCutoffs(vector<vector<int>> &levels, vector<int> &cutoffs, int boar
   for(auto &l : levels) {
     auto cutoff = lower_bound(l.begin(), l.end(), boardSize, neededComp);
     cutoffs.push_back(cutoff - l.begin());
+  }
+}
+
+bool claimNumber(int toClaim, vector<int> &aboveLevel, int aboveCutoff, vector<bool> &taken) {
+  assert(!taken[toClaim]);
+  bool didTake = false;
+  for (int i = 0; i < aboveCutoff; ++i) {
+    if (toClaim%aboveLevel[i] == 0) {
+      if (!taken[aboveLevel[i]] || !taken[toClaim/aboveLevel[i]]){
+        didTake = true;
+        taken[toClaim] = true;
+      }
+      taken[aboveLevel[i]] = true;
+      taken[toClaim/aboveLevel[i]] = true;
+    }
+  }
+  return didTake;
+}
+
+bool bruteForcePerm(vector<int> &aboveLevel, int aboveCutoff, vector<int> &moves, vector<bool> &taken, vector<int> &soFar, deque<int> &toPermute) {
+  if(toPermute.empty()) {
+    moves.insert(moves.end(), soFar.begin(), soFar.end());
+    return true;
+  }
+  for (size_t i = 0; i < toPermute.size(); ++i){
+    int toTry = toPermute.front();
+    toPermute.pop_front();
+    soFar.push_back(toTry);
+    if (soFar.size() == 1)
+      cout << "tree 1: " << toTry << endl;
+    auto takenCopy = taken;
+    if (claimNumber(toTry, aboveLevel, aboveCutoff, takenCopy)) {
+      if (bruteForcePerm(aboveLevel, aboveCutoff, moves, takenCopy, soFar, toPermute)){
+        taken = takenCopy;
+        return true;
+      }
+    }
+    soFar.pop_back();
+    toPermute.push_back(toTry);
+  }
+  return false;
+}
+
+void bruteForceLevel(vector<int> &currLevel, vector<int> &aboveLevel, int currCutoff, int aboveCutoff, vector<int> &moves, vector<bool> &taken) {
+  deque<int> toPermute(currLevel.begin() + currCutoff, currLevel.end());
+  vector<int> soFar;
+  assert(bruteForcePerm(aboveLevel, aboveCutoff, moves, taken, soFar, toPermute));
+}
+
+void bruteForce(vector<vector<int>> &levels, vector<int> &cutoffs, int boardSize, vector<int> &moves) {
+  // Game starts at index 1
+  vector<bool> taken(boardSize+1);
+  for (size_t i = 1; i < levels.size(); ++i) {
+    cout << "BRUTE FORCING LEVEL " << i << endl;
+    bruteForceLevel(levels[i], levels[i-1], cutoffs[i], cutoffs[i-1], moves, taken);
   }
 }
 
@@ -88,7 +146,7 @@ int main(int argc, char *argv[])
     cout << endl;
   }
 
-  // Get our score
+  // Get our expected score
   printStep("Step 3: Get scores");
   long totalScore = (boardSize * (boardSize + 1)) / 2;
   long ourScore = 0;
@@ -99,6 +157,16 @@ int main(int argc, char *argv[])
   cout << "Ratio: " << (float) ourScore / totalScore << endl;
   cout << "Our score " << ourScore << endl;
   cout << "Computer score " << computerScore << endl;
+
+  // Try to brute force the top ordering
+  printStep("Step 4: Brute force levels");
+  vector<int> moves;
+  bruteForce(levels, cutoffs, boardSize, moves);
+  cout << "Moves: " << endl;
+  for (auto m : moves) {
+    cout << m << " ";
+  }
+  cout << endl;
 
   // Print the time elapsed
   double totalTime = getWallTime() - startTime;
