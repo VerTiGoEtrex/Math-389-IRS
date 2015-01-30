@@ -9,9 +9,9 @@
 using namespace std;
 using primesieve::PrimeSieve;
 
-#define red "\x1b[31m"
-#define green "\x1b[32m"
-#define res "\x1b[0m"
+#define RED "\x1b[31m"
+#define GREEN "\x1b[32m"
+#define RES "\x1b[0m"
 
 void printStep(const char* op) {
   cout << "\033[0;94m" << op << "\033[0m" << endl;
@@ -60,6 +60,7 @@ bool claimNumber(int toClaim, vector<int> &aboveLevel, int aboveCutoff, vector<b
       taken[toClaim/aboveLevel[i]] = true;
     }
   }
+  //cout << "\t\tCLAIM FOR " << toClaim << " " << didTake << endl;
   return didTake;
 }
 
@@ -73,7 +74,7 @@ bool bruteForcePerm(vector<int> &aboveLevel, int aboveCutoff, vector<int> &moves
     toPermute.pop_front();
     soFar.push_back(toTry);
     if (soFar.size() == 1)
-      cout << "tree 1: " << toTry << endl;
+      cout << "\ttree 1: " << toTry << endl;
     auto takenCopy = taken;
     if (claimNumber(toTry, aboveLevel, aboveCutoff, takenCopy)) {
       if (bruteForcePerm(aboveLevel, aboveCutoff, moves, takenCopy, soFar, toPermute)){
@@ -90,7 +91,10 @@ bool bruteForcePerm(vector<int> &aboveLevel, int aboveCutoff, vector<int> &moves
 void bruteForceLevel(vector<int> &currLevel, vector<int> &aboveLevel, int currCutoff, int aboveCutoff, vector<int> &moves, vector<bool> &taken) {
   deque<int> toPermute(currLevel.begin() + currCutoff, currLevel.end());
   vector<int> soFar;
-  assert(bruteForcePerm(aboveLevel, aboveCutoff, moves, taken, soFar, toPermute));
+  if (!bruteForcePerm(aboveLevel, aboveCutoff, moves, taken, soFar, toPermute)){
+    cout << RED << "\tWARN: Level wasn't optimal" << RES << endl;
+    exit(1);
+  }
 }
 
 void bruteForce(vector<vector<int>> &levels, vector<int> &cutoffs, int boardSize, vector<int> &moves) {
@@ -139,9 +143,9 @@ int main(int argc, char *argv[])
       //if (j == (size_t) cutoffs[i])
         //cout << "| \t";
       if (j < (size_t) cutoffs[i])
-        cout << red << levels[i][j] << res << "\t";
+        cout << RED << levels[i][j] << RES << "\t";
       else
-        cout << green << levels[i][j] << res << "\t";
+        cout << GREEN << levels[i][j] << RES << "\t";
     }
     cout << endl;
   }
